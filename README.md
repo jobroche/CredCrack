@@ -3,7 +3,7 @@
 ##Introduction
 -----
 
-CredCrack is a fast and stealthy python based credential harvester. Relying solely on an apache server on the attacker machine and PowerShell on the victim, CredCrack exfiltrates credentials in memory and in the clear without ever touching disk. Upon the exfiltration of credentials from all the supplied systems, CredCrack will compare the obtained credentials to the domain's domain administrator group to identify domain administrators obtained. CredCrack also comes with the ability to list and enumerate share access and yes, CredCrack is threaded!
+CredCrack is a fast and stealthy credential harvester. Relying on an apache server on the attacker machine and PowerShell on the victim, CredCrack exfiltrates credentials in memory and in the clear without ever touching disk. Upon the exfiltration of credentials from all the supplied systems, CredCrack will compare the obtained credentials to the domain's domain administrator group to identify domain administrators obtained. CredCrack also comes with the ability to list and enumerate share access and yes, CredCrack is threaded!
 
 CredCrack has been tested and runs with the tools found natively in Kali Linux. CredCrack solely relies on having PowerSploit's "Invoke-Mimikatz.ps1" under the /var/www directory. [Download Invoke-Mimikatz Here](https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1)
 

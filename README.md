@@ -43,7 +43,7 @@ Examples:
 ###Enumerating Share Access
 
 ```
-root@kali:~# ./credcrack.py -r 192.168.1.100 -d acme -u bob -p Password123 --es
+./credcrack.py -r 192.168.1.100 -d acme -u bob -p Password123 --es
 
  ---------------------------------------------------------------------
   CredCrack v1.0 by Jonathan Broche (@g0jhonny)
@@ -84,7 +84,7 @@ root@kali:~# ./credcrack.py -r 192.168.1.100 -d acme -u bob -p Password123 --es
 -----
 
 ```
-root@kali:~# ./credcrack.py -f hosts -d acme -u bob -p Password123 -l 192.168.1.100
+./credcrack.py -f hosts -d acme -u bob -p Password123 -l 192.168.1.100
 
  ---------------------------------------------------------------------
   CredCrack v1.0 by Jonathan Broche (@g0jhonny)

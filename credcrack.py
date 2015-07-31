@@ -22,9 +22,7 @@
 # Author:  Jonathan Broche
 # Contact: @g0jhonny
 # Version: 1.0
-# Date:    2015-07-23
-#
-# Special thanks to @brav0hax and @altonjx
+# Date:    2015-07-31
 
 import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys
 from shlex import split

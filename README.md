@@ -108,7 +108,7 @@ Examples:
                       %  \|%________|       
 
                 
-[*] Host: 192.168.1.102 Domain: ACME User: jsmith Password: Good0lj@ck
+[*] Host: 192.168.1.102 Domain: ACME User: jsmith Password: Good0ljm1th
 [*] Host: 192.168.1.103 Domain: ACME User: daguy Password: P@ssw0rd1!
 
      1 domain administrators found and highlighted in yellow above!

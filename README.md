@@ -18,7 +18,7 @@ optional arguments:
                         line.
   -r RHOST, --rhost RHOST
                         Remote host IP to harvest creds from.
-  -es, --ess            Examine share access on the remote IP(s)
+  -es, --enumshares            Examine share access on the remote IP(s)
   -l LHOST, --lhost LHOST
                         Local host IP to launch scans from.
   -t THREADS, --threads THREADS
@@ -33,7 +33,7 @@ Required:
 
 Examples: 
 
-./credcrack.py -d acme -u bob -p Password123 -f hosts --es
+./credcrack.py -d acme -u bob -p Password123 -f hosts --enumshares
 ./credcrack.py -d acme -u bob -p Password123 -f hosts -l 192.168.1.102 -t 20
 ```
 

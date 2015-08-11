@@ -25,7 +25,7 @@
 # Version: 1.0
 # Date:    2015-08-09
 
-import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys
+import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys, getpass
 from shlex import split
 from shutil import rmtree, copy
 
@@ -322,18 +322,18 @@ def clean_up(flag, stime):
 
 def main():   
 
-    example = "Examples: \n\n./credcrack.py -d acme -u bob -p Password123 -f hosts --es\n./credcrack.py -d acme -u bob -p Password123 -f hosts -l 192.168.1.102 -t 20"
+    example = "Examples: \n\n./credcrack.py -d acme -u bob -f hosts -es\n./credcrack.py -d acme -u bob -f hosts -l 192.168.1.102 -t 20"
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="CredCrack - A stealthy credential harvester by Jonathan Broche (@g0jhonny)", epilog=example)
     required = parser.add_argument_group("Required")
     required.add_argument('-d', '--domain', required=True, help='Domain or Workstation')
     required.add_argument('-u', '--user', required=True, help='Domain username')
-    required.add_argument('-p', '--passwd', required=True, help='Domain user password')
     parser.add_argument('-f', '--file', help='File containing IPs to harvest creds from. One IP per line.')
     parser.add_argument('-r', '--rhost', help='Remote host IP to harvest creds from.')
     parser.add_argument('-es', '--enumshares', help='Examine share access on the remote IP(s)', action='store_true')
     parser.add_argument('-l', '--lhost', help='Local host IP to launch scans from.')
     parser.add_argument('-t', '--threads', help='Number of threads (default: 10)', default=10, type=int)
     args = parser.parse_args()
+    args.passwd = getpass.getpass()
 
     print "\n " + "-" * 69 + "\n " + colors.white + " CredCrack v1.0 by Jonathan Broche (@g0jhonny)\n " + colors.normal + "-" * 69 + "\n "
 
@@ -342,6 +342,10 @@ def main():
     q = Queue.Queue(maxsize=0)
 
     try:
+        if not args.passwd:
+            print "{}[!]{} Please provide a password\n".format(colors.red, colors.normal)
+            return
+
         if args.enumshares:
             if args.rhost:
                 if validate(args.rhost):

@@ -23,7 +23,7 @@
 # Email:   jb@gojhonny.com
 # Twitter: @g0jhonny
 # Version: 1.0
-# Date:    2015-08-09
+# Date:    2015-08-11
 
 import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys, getpass
 from shlex import split

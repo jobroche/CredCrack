@@ -10,6 +10,9 @@ CredCrack has been tested and runs with the tools found natively in Kali Linux. 
 ## Help
 -----
 ```
+usage: credcrack.py [-h] -d DOMAIN -u USER [-f FILE] [-r RHOST] [-es]
+                    [-l LHOST] [-t THREADS]
+
 CredCrack - A stealthy credential harvester by Jonathan Broche (@g0jhonny)
 
 optional arguments:
@@ -18,7 +21,7 @@ optional arguments:
                         line.
   -r RHOST, --rhost RHOST
                         Remote host IP to harvest creds from.
-  -es, --enumshares            Examine share access on the remote IP(s)
+  -es, --enumshares     Examine share access on the remote IP(s)
   -l LHOST, --lhost LHOST
                         Local host IP to launch scans from.
   -t THREADS, --threads THREADS
@@ -28,13 +31,11 @@ Required:
   -d DOMAIN, --domain DOMAIN
                         Domain or Workstation
   -u USER, --user USER  Domain username
-  -p PASSWD, --passwd PASSWD
-                        Domain user password
 
 Examples: 
 
-./credcrack.py -d acme -u bob -p Password123 -f hosts --enumshares
-./credcrack.py -d acme -u bob -p Password123 -f hosts -l 192.168.1.102 -t 20
+./credcrack.py -d acme -u bob -f hosts -es
+./credcrack.py -d acme -u bob -f hosts -l 192.168.1.102 -t 20
 ```
 
 ## Examples
@@ -43,8 +44,8 @@ Examples:
 ###Enumerating Share Access
 
 ```
-./credcrack.py -r 192.168.1.100 -d acme -u bob -p Password123 --es
-
+./credcrack.py -r 192.168.1.100 -d acme -u bob --es
+Password:
  ---------------------------------------------------------------------
   CredCrack v1.0 by Jonathan Broche (@g0jhonny)
  ---------------------------------------------------------------------
@@ -84,7 +85,8 @@ Examples:
 -----
 
 ```
-./credcrack.py -f hosts -d acme -u bob -p Password123 -l 192.168.1.100
+./credcrack.py -f hosts -d acme -u bob -l 192.168.1.100
+Password:
 
  ---------------------------------------------------------------------
   CredCrack v1.0 by Jonathan Broche (@g0jhonny)

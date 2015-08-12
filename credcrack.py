@@ -123,6 +123,7 @@ def enum_shares(q, username, password, domain):
     try:
         while True:
             with lock:
+		os = ""
                 shares, endshares = [], []
                 rhost = q.get()
 

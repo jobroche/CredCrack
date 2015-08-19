@@ -125,8 +125,8 @@ Contact me at [@g0jhonny](https://twitter.com/g0jhonny) with any questions or fe
 
 ####Credits
 CredCrack couldn't have been possible without the contributions of the following individuals. You're all rockstars!
-* [@mattifestation](https://twitter.com/mattifestation) and [@JosephBialek](https://twitter.com/JosephBialek)thanks for Invoke-Mimikatz.ps1 and the overpowered PowerSploit framework!!
-* [Benjamin Delpy](https://twitter.com/gentilkiwi) for THE tool that any pentester should have, Mimikatz! Awesome work sir!
+* [@JosephBialek](https://twitter.com/JosephBialek) thanks for the great Invoke-Mimikatz.ps1 script!
+* [@gentilkiwi](https://twitter.com/gentilkiwi) for THE tool that any pentester should have, Mimikatz! Awesome work sir!
 * [@brav0hax](https://twitter.com/brav0hax) - the pioneer of performing mass credential harvesting with SMBExec! Thanks for being a mentor, friend and for helping me test the script man!
 * [@altonjx](https://twitter.com/altonjx) - The man who proof reads all the blog posts, gives me constant feedback and is always there for me. You da man! 
 * Everyone else! Thank you for all your contributions and feedback to make this a better script, keep 'em coming! 

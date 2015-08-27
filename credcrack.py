@@ -355,7 +355,7 @@ def main():
     args = parser.parse_args()
     args.passwd = getpass.getpass()
 
-    print "\n " + "-" * 69 + "\n " + colors.white + " CredCrack v1.0 by Jonathan Broche (@g0jhonny)\n " + colors.normal + "-" * 69 + "\n "
+    print "\n " + "-" * 69 + "\n " + colors.white + " CredCrack v1.1 by Jonathan Broche (@g0jhonny)\n " + colors.normal + "-" * 69 + "\n "
 
     stime = time.time()
     das, credentials, badhost = [], [], []

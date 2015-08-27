@@ -47,7 +47,7 @@ Examples:
 ./credcrack.py -r 192.168.1.100 -d acme -u bob --es
 Password:
  ---------------------------------------------------------------------
-  CredCrack v1.0 by Jonathan Broche (@g0jhonny)
+  CredCrack v1.1 by Jonathan Broche (@g0jhonny)
  ---------------------------------------------------------------------
  
 [*] Validating 192.168.1.102
@@ -89,7 +89,7 @@ Password:
 Password:
 
  ---------------------------------------------------------------------
-  CredCrack v1.0 by Jonathan Broche (@g0jhonny)
+  CredCrack v1.1 by Jonathan Broche (@g0jhonny)
  ---------------------------------------------------------------------
  
 [*] Setting up the stage

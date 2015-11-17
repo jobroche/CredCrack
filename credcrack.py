@@ -353,7 +353,7 @@ def main():
     parser.add_argument('-l', '--lhost', help='Local host IP to launch scans from.')
     parser.add_argument('-t', '--threads', help='Number of threads (default: 10)', default=10, type=int)
     args = parser.parse_args()
-    args.passwd = getpass.getpass()
+    
 
     print "\n " + "-" * 69 + "\n " + colors.white + " CredCrack v1.1 by Jonathan Broche (@g0jhonny)\n " + colors.normal + "-" * 69 + "\n "
 
@@ -362,10 +362,6 @@ def main():
     q = Queue.Queue(maxsize=0)
 
     try:
-        if not args.passwd:
-            print "{}[!]{} Please provide a password\n".format(colors.red, colors.normal)
-            return
-
         if args.enumshares:
             if args.rhost:
                 if validate(args.rhost):
@@ -375,6 +371,10 @@ def main():
                     lines = [ip.strip() for ip in f.readlines() if ip.strip() and validate(ip.strip())]
                 for line in lines:
                     q.put(line)
+	    args.passwd = getpass.getpass()	
+            if not args.passwd:
+                print "{}[!]{} Please provide a password\n".format(colors.red, colors.normal)
+                return
             if q.queue:
                 for i in range(args.threads):
                     worker = threading.Thread(target=enum_shares, args=(q, args.user, args.passwd, args.domain))
@@ -385,6 +385,10 @@ def main():
         else:
             if args.lhost:
                 if setup(args.lhost):
+                    args.passwd = getpass.getpass()	
+                    if not args.passwd:
+                        print "{}[!]{} Please provide a password\n".format(colors.red, colors.normal)
+                        return
                     if args.rhost:
                         if validate(args.rhost):
                             das = get_das(args.rhost, args.user, args.passwd, args.domain)

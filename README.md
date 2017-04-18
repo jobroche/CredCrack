@@ -1,6 +1,6 @@
 # CredCrack
 
-##Introduction
+## Introduction
 -----
 
 CredCrack is a fast and stealthy credential harvester. It exfiltrates credentials recusively in memory and in the clear. Upon completion, CredCrack will parse and output the credentials while identifying any domain administrators obtained. CredCrack also comes with the ability to list and enumerate share access and yes, it is threaded!
@@ -41,7 +41,7 @@ Examples:
 ## Examples
 -----
 
-###Enumerating Share Access
+### Enumerating Share Access
 
 ```
 ./credcrack.py -r 192.168.1.100 -d acme -u bob --es
@@ -81,7 +81,7 @@ Password:
 [*] Done! Completed in 0.8s
 ```
 
-###Harvesting credentials
+### Harvesting credentials
 -----
 
 ```
@@ -120,9 +120,9 @@ Password:
 [*] Completed in 11.3s
 ```
 
-####Contact
+#### Contact
 Contact me at [@g0jhonny](https://twitter.com/g0jhonny) with any questions or features you'd like to see in the next update. For bugs submit an [issue](https://github.com/gojhonny/CredCrack/issues/new)!
 
-####Credits
+#### Credits
 CredCrack couldn't have been possible without the contributions of the following individuals. You're all rockstars!
 [@JosephBialek](https://twitter.com/JosephBialek), [@brav0hax](https://twitter.com/brav0hax), [@altonjx](https://twitter.com/altonjx) and everyone else! Thank you for all your contributions and feedback to make this a better script, keep 'em coming! 

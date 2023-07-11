@@ -1,5 +1,7 @@
 # CredCrack
 
+⛔ [DEPRECATED]. This repo is no longer being maintained. Please consider using [CrackMapExec](https://github.com/mpgn/CrackMapExec).
+
 ## Introduction
 -----
 
